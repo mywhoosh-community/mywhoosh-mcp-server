@@ -1,21 +1,22 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 
 export const method = 'getCustomWorkoutUpload';
-export const description = 'Get S3 URL for downloading custom workouts.';
-export const parameters = z.object({});
+export const description = 'Get the S3 URL (valid 10 minutes) and count of the custom workouts for one sport.';
+export const parameters = z.object({
+  sport: sportParameter,
+});
 
 export async function handler(
-  _args: z.infer<typeof parameters>,
+  args: z.infer<typeof parameters>,
   extra: { client: MyWhooshClient }
 ): Promise<CallToolResult> {
   try {
-    const whooshId = extra.client.getWhooshId();
-    if (!whooshId) throw new McpError(-32600, 'Not authenticated');
-
-    const result = await extra.client.get(`/client/custom-workout-upload/${whooshId}`, { baseUrl: 'COACHING' });
+    // the path takes the sport type, not the WhooshId (a WhooshId here made the server fail with
+    // "Cast to Number failed for value NaN at path sportsModeType")
+    const result = await extra.client.get(`/client/custom-workout-upload/${SPORTS[args.sport].type}`, { baseUrl: 'COACHING' });
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };

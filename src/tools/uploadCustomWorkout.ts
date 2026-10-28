@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 
 const workoutStepSchema = z.object({
   Id: z.number().describe('Step ID (sequential number starting from 1)'),
@@ -28,7 +28,6 @@ const workoutSchema = z.object({
   Id: z.number().describe('Unique workout ID. For NEW workouts: use timestamp or random large number (e.g., 176540733485). For UPDATING existing workouts: use the same ID as the original workout.'),
   Name: z.string().describe('Workout name'),
   Description: z.string().default('').describe('Workout description'),
-  Mode: z.string().default('E_Ride').describe('Workout mode (use E_Ride for cycling)'),
   ERGMode: z.string().default('E_OFF').describe('ERG mode setting'),
   IsRecovery: z.boolean().default(false).describe('Is this a recovery workout?'),
   IsIntervals: z.boolean().default(false).describe('Does this workout contain intervals?'),
@@ -53,14 +52,20 @@ const workoutSchema = z.object({
   IF: z.number().default(0).describe('Intensity Factor (optional, can be 0)'),
   KJ: z.number().default(0).describe('Kilojoules (optional, can be 0)'),
   IsVODAvailable: z.boolean().default(false),
+  Environment: z.string().default('E_Outside').describe('Workout environment, as the app sends it'),
+  ScheduledDate: z.string().default(''),
 });
 
 export const method = 'uploadCustomWorkout';
-export const description = `Upload or update custom cycling workouts to MyWhoosh. 
+export const description = `Upload or update custom workouts (cycling, running or rowing) to MyWhoosh.
 
 CREATING NEW WORKOUTS:
-- Use a new unique workout ID (timestamp or random large number)
+- Use a new unique workout ID (the app uses the current Unix time in seconds)
 - Define all workout properties and steps
+
+SPORTS:
+- Set sport to cycling, running or rowing; the workout lands in that sport's list in the app
+- Read workouts back with downloadCustomWorkoutsFromS3 for the same sport
 
 UPDATING EXISTING WORKOUTS:
 - Use the same workout ID as the existing workout
@@ -93,6 +98,7 @@ EXAMPLE WORKOUT:
 
 export const parameters = z.object({
   workouts: z.array(workoutSchema).describe('Array of workout definitions to upload'),
+  sport: sportParameter,
 });
 
 export async function handler(
@@ -100,8 +106,7 @@ export async function handler(
   extra: { client: MyWhooshClient }
 ): Promise<CallToolResult> {
   try {
-    const whooshId = extra.client.getWhooshId();
-    if (!whooshId) throw new McpError(-32600, 'Not authenticated');
+    const sport = SPORTS[args.sport];
 
     const workoutsData = args.workouts.map(workout => {
       const workoutSteps: Record<string, any> = {};
@@ -111,6 +116,7 @@ export async function handler(
 
       return {
         ...workout,
+        Mode: sport.mode,
         WorkoutSteps: workoutSteps,
         WorkoutstepsTMap: [],
         WokoutAssociationId: 0,
@@ -119,8 +125,9 @@ export async function handler(
 
     const result = await extra.client.post('/client/custom-workout-upload', {
       baseUrl: 'COACHING',
+      // same body as the app: no UserId (the token identifies the player), sport type at the top level
       body: JSON.stringify({
-        UserId: whooshId,
+        SportsModeType: sport.type,
         WorkoutsData: workoutsData,
       }),
     });

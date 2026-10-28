@@ -1,23 +1,22 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 import AdmZip from 'adm-zip';
 
 export const method = 'downloadCustomWorkoutsFromS3';
-export const description = 'Download and extract all custom workouts from MyWhoosh S3 bucket. Returns the workout data as parsed JSON objects.';
-export const parameters = z.object({});
+export const description = 'Download and extract all custom workouts of one sport from the MyWhoosh S3 bucket. Returns the workout data as parsed JSON objects, in the shape uploadCustomWorkout accepts.';
+export const parameters = z.object({
+  sport: sportParameter,
+});
 
 export async function handler(
-  _args: z.infer<typeof parameters>,
+  args: z.infer<typeof parameters>,
   extra: { client: MyWhooshClient }
 ): Promise<CallToolResult> {
   try {
-    const whooshId = extra.client.getWhooshId();
-    if (!whooshId) throw new McpError(-32600, 'Not authenticated');
-
     // Get S3 URL
-    const uploadInfo = await extra.client.get(`/client/custom-workout-upload/${whooshId}`, { 
+    const uploadInfo = await extra.client.get(`/client/custom-workout-upload/${SPORTS[args.sport].type}`, { 
       baseUrl: 'COACHING' 
     }) as { data: { workoutZipUrl: string; workoutCount: number } };
 
