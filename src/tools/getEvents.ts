@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 
 export const method = 'getEvents';
 export const description = 'Get list of upcoming and current events.';
 export const parameters = z.object({
-  sportsMode: z.string().optional().default('E_Cycling').describe('Sports mode filter'),
+  sport: sportParameter,
 });
 
 export async function handler(
@@ -18,7 +18,8 @@ export async function handler(
     const query = new URLSearchParams({
       'zone-offset': zoneOffset,
       date: '-1',
-      SportsMode: args.sportsMode || 'E_Cycling',
+      // the app sends sportType; the old SportsMode parameter was ignored (same events for every sport)
+      sportType: SPORTS[args.sport].enum,
       platform: 'mobile',
     });
 

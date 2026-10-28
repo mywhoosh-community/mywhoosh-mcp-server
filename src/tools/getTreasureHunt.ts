@@ -1,18 +1,20 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 
 export const method = 'getTreasureHunt';
-export const description = 'Get treasure hunt gate information.';
-export const parameters = z.object({});
+export const description = 'Get treasure hunt gate information. MyWhoosh returns it as an encoded (apparently encrypted) string, the same the app receives, not as readable data.';
+export const parameters = z.object({
+  sport: sportParameter,
+});
 
 export async function handler(
-  _args: z.infer<typeof parameters>,
+  args: z.infer<typeof parameters>,
   extra: { client: MyWhooshClient }
 ): Promise<CallToolResult> {
   try {
-    const result = await extra.client.get('/game/treasure-hunt');
+    const result = await extra.client.get(`/game/treasure-hunt?sportType=${SPORTS[args.sport].name}`);
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };

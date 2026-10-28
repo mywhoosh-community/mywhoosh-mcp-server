@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 
 export const method = 'getGroupWorkouts';
 export const description = 'Get list of available group workouts.';
-export const parameters = z.object({});
+export const parameters = z.object({
+  sport: sportParameter,
+});
 
 export async function handler(
   args: z.infer<typeof parameters>,
@@ -16,6 +18,7 @@ export async function handler(
     const query = new URLSearchParams({
       'zone-offset': zoneOffset,
       platform: 'mobile',
+      sportType: SPORTS[args.sport].name,
     });
 
     const result = await extra.client.get(`/group-workout?${query}`, { baseUrl: 'SERVICE26' });

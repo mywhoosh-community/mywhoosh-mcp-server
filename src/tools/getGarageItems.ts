@@ -1,18 +1,20 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 
 export const method = 'getGarageItems';
 export const description = 'Get garage/shop items metadata (bikes, equipment, etc.).';
-export const parameters = z.object({});
+export const parameters = z.object({
+  sport: sportParameter,
+});
 
 export async function handler(
-  _args: z.infer<typeof parameters>,
+  args: z.infer<typeof parameters>,
   extra: { client: MyWhooshClient }
 ): Promise<CallToolResult> {
   try {
-    const result = await extra.client.get('/economy/garage/item');
+    const result = await extra.client.get(`/economy/garage/item?sportType=${SPORTS[args.sport].name}`);
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };

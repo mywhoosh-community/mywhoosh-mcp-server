@@ -1,18 +1,20 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 
 export const method = 'getControllableBots';
 export const description = 'Get controllable companion bot configurations (Smasher, Climber, Attacker, etc.).';
-export const parameters = z.object({});
+export const parameters = z.object({
+  sport: sportParameter,
+});
 
 export async function handler(
-  _args: z.infer<typeof parameters>,
+  args: z.infer<typeof parameters>,
   extra: { client: MyWhooshClient }
 ): Promise<CallToolResult> {
   try {
-    const result = await extra.client.get('/bots/game/ControllableBots');
+    const result = await extra.client.get(`/bots/game/ControllableBots?sportType=${SPORTS[args.sport].name}`);
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };

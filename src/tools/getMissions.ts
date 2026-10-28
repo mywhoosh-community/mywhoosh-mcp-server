@@ -1,18 +1,20 @@
 import { z } from 'zod';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { MyWhooshClient } from '../clients/mywhoosh.js';
-import { asMcpError, McpError } from './utils/toolHelpers.js';
+import { asMcpError, McpError, SPORTS, sportParameter } from './utils/toolHelpers.js';
 
 export const method = 'getMissions';
 export const description = 'Get available missions and challenges.';
-export const parameters = z.object({});
+export const parameters = z.object({
+  sport: sportParameter,
+});
 
 export async function handler(
   args: z.infer<typeof parameters>,
   extra: { client: MyWhooshClient }
 ): Promise<CallToolResult> {
   try {
-    const result = await extra.client.get('/mission-challenge/mission');
+    const result = await extra.client.get(`/mission-challenge/mission?sportType=${SPORTS[args.sport].name}`);
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     };
